@@ -1,25 +1,24 @@
 package blockchain
 
-import "bytes"
-
-import "encoding/gob"
-
-import "log"
-
-import "crypto/sha256"
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/gob"
+	"log"
+)
 
 type Block struct {
-	Hash        []byte
-	Transaction []*Transaction
-	PrevHash    []byte
-	Nonce       int
+	Hash         []byte
+	Transactions []*Transaction
+	PrevHash     []byte
+	Nonce        int
 }
 
-func (b *Block) HashTransaction() []byte {
+func (b *Block) HashTransactions() []byte {
 	var txHashes [][]byte
 	var txHash [32]byte
 
-	for _, tx := range b.Transaction {
+	for _, tx := range b.Transactions {
 		txHashes = append(txHashes, tx.ID)
 	}
 	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
@@ -55,7 +54,9 @@ func (b *Block) Serialize() []byte {
 
 func Deserialize(data []byte) *Block {
 	var block Block
+
 	decoder := gob.NewDecoder(bytes.NewReader(data))
+
 	err := decoder.Decode(&block)
 
 	Handle(err)

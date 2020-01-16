@@ -21,18 +21,19 @@ type BlockChain struct {
 }
 
 type BlockChainIterator struct {
-	CurrerntHash []byte
-	Database     *badger.DB
+	CurrentHash []byte
+	Database    *badger.DB
 }
 
 func DBexists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
 	}
+
 	return true
 }
 
-func ContinueBlcokChain(address string) *BlockChain {
+func ContinueBlockChain(address string) *BlockChain {
 	if DBexists() == false {
 		fmt.Println("No existing blockchain found, create one!")
 		runtime.Goexit()
@@ -87,6 +88,7 @@ func InitBlockChain(address string) *BlockChain {
 		lastHash = genesis.Hash
 
 		return err
+
 	})
 
 	Handle(err)
@@ -131,16 +133,16 @@ func (iter *BlockChainIterator) Next() *Block {
 	var block *Block
 
 	err := iter.Database.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(iter.CurrerntHash)
+		item, err := txn.Get(iter.CurrentHash)
 		Handle(err)
-		encodeBlock, err := item.Value()
-		block = Deserialize(encodeBlock)
+		encodedBlock, err := item.Value()
+		block = Deserialize(encodedBlock)
 
 		return err
 	})
 	Handle(err)
 
-	iter.CurrerntHash = block.PrevHash
+	iter.CurrentHash = block.PrevHash
 
 	return block
 }
@@ -155,7 +157,7 @@ func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
 	for {
 		block := iter.Next()
 
-		for _, tx := range block.Transaction {
+		for _, tx := range block.Transactions {
 			txID := hex.EncodeToString(tx.ID)
 
 		Outputs:
@@ -179,7 +181,6 @@ func (chain *BlockChain) FindUnspentTransactions(address string) []Transaction {
 					}
 				}
 			}
-
 		}
 
 		if len(block.PrevHash) == 0 {
@@ -203,7 +204,7 @@ func (chain *BlockChain) FindUTXO(address string) []TxOutput {
 	return UTXOs
 }
 
-func (chain *BlockChain) FindSpendalbeOutputs(address string, amount int) (int, map[string][]int) {
+func (chain *BlockChain) FindSpendableOutputs(address string, amount int) (int, map[string][]int) {
 	unspentOuts := make(map[string][]int)
 	unspentTxs := chain.FindUnspentTransactions(address)
 	accumulated := 0
